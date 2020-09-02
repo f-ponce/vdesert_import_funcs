@@ -290,6 +290,16 @@ def get_elapsed_time(my_list):
         all_t_ellapsed.append(t_ellapsed)
     return all_t_ellapsed
 
+def get_elapsed_time_2lists(my_list_1, my_list_2):
+#for list of arrays
+#gets elapsed time of each array in list and first element
+#of each array in my_list_2
+    all_t_ellapsed = []
+    for i in range(len(my_list_1)):
+        t_ellapsed = my_list_1[i] - my_list_2[i][0]
+        all_t_ellapsed.append(t_ellapsed)
+    return all_t_ellapsed
+
 ##########################################################################################
 #interpolation of magnotether angles
 
@@ -401,29 +411,29 @@ import os
 ###################################################################################################
 
 # NOTE: smart_bounds is disabled (commented out) in this function. It only works in matplotlib v >1.
-# to fix this issue, try manually setting your tick marks (see example below) 
+# to fix this issue, try manually setting your tick marks (see example below)
 def adjust_spines(ax,spines, spine_locations={}, smart_bounds=True, xticks=None, yticks=None, linewidth=1, spineColor='black'): # ivo: spineColor
     if type(spines) is not list:
         spines = [spines]
-        
+
     # get ticks
     if xticks is None:
         xticks = ax.get_xticks()
     if yticks is None:
         yticks = ax.get_yticks()
-        
+
 #    spine_locations_dict = {'top': 10, 'right': 10, 'left': 10, 'bottom': 10}
     spine_locations_dict = {'top': 6, 'right': 6, 'left': 6, 'bottom': 6}
     for key in spine_locations.keys():
         spine_locations_dict[key] = spine_locations[key]
-        
+
     if 'none' in spines:
         for loc, spine in ax.spines.iteritems():
             spine.set_color('none') # don't draw spine
         ax.yaxis.set_ticks([])
         ax.xaxis.set_ticks([])
         return
-    
+
     for loc, spine in ax.spines.items():
         if loc in spines:
             spine.set_position(('outward',spine_locations_dict[loc])) # outward by x points
@@ -435,9 +445,9 @@ def adjust_spines(ax,spines, spine_locations={}, smart_bounds=True, xticks=None,
             ax.tick_params(direction="in") #ivo
         else:
             spine.set_color('none') # don't draw spine
-            
+
     # smart bounds, if possible
-    if int(matplotlib.__version__[0]) > 0 and smart_bounds: 
+    if int(matplotlib.__version__[0]) > 0 and smart_bounds:
         for loc, spine in ax.spines.items():
             if loc in ['left', 'right']:
                 ticks = yticks
@@ -460,24 +470,24 @@ def adjust_spines(ax,spines, spine_locations={}, smart_bounds=True, xticks=None,
         ax.xaxis.set_ticks_position('top')
     else:
         # no xaxis ticks
-        ax.xaxis.set_ticks([])    
-    
+        ax.xaxis.set_ticks([])
+
     if 'left' in spines or 'right' in spines:
         ax.set_yticks(yticks)
     if 'top' in spines or 'bottom' in spines:
         ax.set_xticks(xticks)
-    
+
     for line in ax.get_xticklines() + ax.get_yticklines():
         #line.set_markersize(6)
         line.set_markeredgewidth(linewidth)
 
-        
+
 def kill_spines(ax):
-    return adjust_spines(ax,'none', 
-                  spine_locations={}, 
-                  smart_bounds=True, 
-                  xticks=None, 
-                  yticks=None, 
+    return adjust_spines(ax,'none',
+                  spine_locations={},
+                  smart_bounds=True,
+                  xticks=None,
+                  yticks=None,
                   linewidth=1)
 
 def kill_labels(ax):
@@ -490,7 +500,7 @@ def kill_all_spines(layout):
 
 def kill_all_labels(layout):
     [kill_labels(ax) for ax in layout.axes.values()]
-    
+
 def set_fontsize(fig,fontsize):
     """
     For each text object of a figure fig, set the font size to fontsize
@@ -500,7 +510,7 @@ def set_fontsize(fig,fontsize):
 
     for textobj in fig.findobj(match=match):
         textobj.set_fontsize(fontsize)
-        
+
 def set_fontfamily(fig,fontfamily): #ivo
     """
     For each text object of a figure fig, set the font size to fontsize

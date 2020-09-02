@@ -32,7 +32,7 @@ sns.set_style()
 #############################################################################
 
 #findSacs func
-def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
+def findSacs_n_plot_v2(flyAngle,flyAngle2,headingVelo,headingVelo2,fly_n,sFigPath, plotQ,  *args):
 
 # Finds local min-/maxima that are within threshold/ceiling bounds of wing steering velocity (headingVelo)
 # Subsequently, integrates the unidirectional headingVelo sections surrounding local extremes,
@@ -58,8 +58,13 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
     # fVec, fs, headingVeloThresh, headingVeloCeil, magThresh, magCeil = \
     # np.zeros_like(flyAngle),30., 60., 2500., 6., 180.
 
+    #parameters used before 08/20/20
+    # fVec, fs, headingVeloThresh, headingVeloCeil, magThresh, magCeil = \
+    # np.zeros_like(flyAngle),30., 40., 2500., 6., 180.
+
+    #parameters used on 08/20/20
     fVec, fs, headingVeloThresh, headingVeloCeil, magThresh, magCeil = \
-    np.zeros_like(flyAngle),30., 40., 2500., 6., 180.
+    np.zeros_like(flyAngle),30., 30., 2500., 6., 180.
 
     #64.,60.,2500.(ceil),6.,180. #the 10 could be 10
     #30., 20., 240., 10., 140. #testing values
@@ -69,21 +74,10 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
 #############################################################################
 ## Local functions (inside this function, so they don't need to be separately defined)
 
-    def butter_lowpass(th_order=4, highcut=260, fs=32.):
-
-        nyq = 0.5 * fs
-        high = highcut / nyq
-        return butter(th_order, high, btype='low')
-
-    def filtTrace(inArr, fs):
-
-        th_order, highcut = 4, 6.#highcut is 6 based of Maimons paper, could be up to 9
-        d, c = butter_lowpass(th_order, highcut, fs)
-        return filtfilt(d, c, inArr)
-
     def calcMag(idx, headingVelo, flyAngleFilt):
         # calculate difference in heading angle between nearest local extremes (of opposite sign)
-
+        offIdx = None
+        lastIdx = headingVelo.shape[0]-1
         k=0
         chkMore=True
         refSign=np.sign(headingVelo[idx])
@@ -95,13 +89,15 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
                 chkMore=False
         k=0
         chkMore=True
-        while chkMore:
+        while chkMore and idx+k+1 < lastIdx:
             k += 1
             compSign=np.sign(headingVelo[idx+k])
             if refSign != compSign:
                 offIdx=idx+k
                 chkMore=False
-        # integrate: BR (behavioral response) = dWSA(offIdx)-dWSA(onIdx)
+        if offIdx == None:
+            #print 'offIdx set to last index'
+            offIdx = lastIdx
         return flyAngleFilt[offIdx] - flyAngleFilt[onIdx], onIdx, offIdx
 
 
@@ -111,93 +107,7 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
         outVec[outVec == 0] = np.nan
         return outVec
 
-
-    def pltSacs(flyAngle, fly_n, sFigPath, headingVelo, SVMxThr, SVMnThr, flyAngleFilt, SSctnMx, SSctnMn):
-
-        #from mpl_functions import adjust_spines
-        import matplotlib.pyplot as plt
-        from matplotlib import gridspec
-
-        timeCol = np.arange(len(flyAngle))/fs
-        sttT, endT = timeCol[0], timeCol[-1] # substitute if desired
-        figure_padding = 0.25
-        subplot_padding = 0.04
-        kleur2 = 'black'
-        lijnbreedte = .5
-        WoverH = 2. # figure ratio: W/H
-
-        headingVeloRange = 12 * headingVeloThresh
-
-        yLimMin, yLimMax = np.nanmin(flyAngle[10:-10]), np.nanmax(flyAngle[10:-10])
-
-        yLimMinPlt = yLimMin#-yRangeAdd
-
-        figH = 2.
-        figW = WoverH * figH
-        fig = plt.figure(figsize=(figW,figH))
-        fig.set_facecolor('w')
-
-        aspect_ratio = (4+subplot_padding)/(12.+subplot_padding)
-        gs0 = gridspec.GridSpec(2, 1, height_ratios=[1,1.67]) #width_ratios=[20,1,1,1],
-        gs0.update(left=figure_padding*aspect_ratio, right=1-figure_padding*aspect_ratio,
-                   wspace=subplot_padding, hspace=subplot_padding,
-                   top=1-figure_padding+subplot_padding, bottom=figure_padding-subplot_padding)
-        ax0 = plt.subplot(gs0[0, 0]) # headingVelo
-        ax2 = plt.subplot(gs0[1, 0]) # LmR and sacs
-
-        ax0.axhspan(0, 0, alpha=.5, color='k', zorder=0, linewidth=.5*lijnbreedte)
-        ax0.axhspan(headingVeloThresh, headingVeloThresh, linestyle='--',
-                    alpha=.5, color='k', zorder=0, linewidth=.5*lijnbreedte)
-        ax0.axhspan(-headingVeloThresh, -headingVeloThresh, linestyle='--',
-                    alpha=.5, color='k', zorder=0, linewidth=.5*lijnbreedte)
-        ax0.axhspan(headingVeloCeil, headingVeloCeil, linestyle=':',
-                    alpha=.5, color='k', zorder=0, linewidth=.5*lijnbreedte)
-        ax0.axhspan(-headingVeloCeil, -headingVeloCeil, linestyle=':',
-                    alpha=.5, color='k', zorder=0, linewidth=.5*lijnbreedte)
-
-
-        ax0.plot(timeCol, headingVelo, color='k', zorder=2, linewidth=lijnbreedte)
-        ax0.plot(timeCol, SVMxThr, linestyle='None', marker='.', color='b', markersize=2, zorder=20)
-        ax0.plot(timeCol, SVMnThr, linestyle='None', marker='.', color='r', markersize=2, zorder=20)
-
-        ax2.plot(timeCol, flyAngle, color='g', zorder=4, linewidth=lijnbreedte*.5)
-        ax2.plot(timeCol, flyAngleFilt, color='k', zorder=2, linewidth=lijnbreedte)
-        ax2.plot(timeCol, SSctnMx, color='b', zorder=19, linewidth=lijnbreedte)
-        ax2.plot(timeCol, SSctnMn, color='r', zorder=19, linewidth=lijnbreedte)
-
-        ax0.set_ylabel('ang. vel. ($^\circ$/s)', labelpad=0, fontname='Arial')
-        ax0.yaxis.set_label_position('right')
-
-        ax0.set_xlim((sttT, endT))
-        ax0.set_ylim((-headingVeloRange,headingVeloRange)) #data
-
-        mpl.adjust_spines(ax0,'left', yticks=[0, headingVeloRange], linewidth=.6, spineColor=kleur2)
-        ax2.set_ylabel('angle ($^\circ$)', labelpad=0, fontname='Arial')
-
-        ax2.set_xlim((sttT, endT))
-        ax2.set_ylim((yLimMinPlt,yLimMax)) #data
-        #+10,+2 depends on trial length!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        mpl.adjust_spines(ax2,['left', 'bottom'], xticks=[sttT, sttT+2], yticks=[yLimMin, yLimMax],
-                      linewidth=.6, spineColor=kleur2)
-        ax2.spines['bottom'].set_linewidth(1.) #axis
-
-        if not os.path.exists(sFigPath):
-            #os.makedirs(sFigPath)
-            print('fig directory does not exist')
-        print ('figs can be found here: ' + sFigPath)
-        ax2.set_xticks([ ]) # TOGGLE TO hide TIME TICKS
-
-        #saving fig
-        savePlotName = sFigPath + 'fly' + str(fly_n) + '.png'
-        fig.savefig(savePlotName , bbox_inches='tight', dpi = 1200)
-        plt.close
-
-
 ### end of local functions
-#############################################################################
-
-    # Default saccade identifier parameters
-    plotQ = plotQ
 
 ###########################################################################################
     ## check for arguments
@@ -231,19 +141,8 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
         print ('could not assign all parameters')
     ###########################################################################################
 
-    ## Low-pass filter the incoming angle vector
-    #flyAngleFilt= filtTrace(flyAngle, fs)
     flyAngleFilt = copy.deepcopy(flyAngle)
     flyAngleFilt2 = copy.deepcopy(flyAngle2)
-    #flyAngleFilt = flyAngle
-    ## d/dt the filtered angle vector
-    headingVelo=np.zeros_like(flyAngleFilt)
-    for k in range(len(flyAngleFilt)-1):
-        headingVelo[k]=(flyAngleFilt[k+1]-flyAngleFilt[k])*fs
-
-    headingVelo2=np.zeros_like(flyAngleFilt2)
-    for k in range(len(flyAngleFilt2)-1):
-        headingVelo2[k]=(flyAngleFilt2[k+1]-flyAngleFilt2[k])*fs
 
     # In words: find local extremes that exceed headingVelo threshold during flight
     # subsequently, integrate the unidirectional headingVelo sections surrounding local extremes.
@@ -295,6 +194,31 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
                 lcMnoffIdx[idx] = offIdx
                 lcMndeltaIdx[idx] = offIdx-idx
 
+    ## remove current extrema, if preceded within the rebound period by a higher syndirectional extremus
+    for idx in range (reboundIds,len(headingVelo2)-reboundIds):
+        if lcMxMagTemp[idx]>0: # for every local maximum that exceeds the magnitude threshold
+            if abs(np.sum(lcMxMagTemp[idx-reboundIds:idx]))>magThresh and  ~np.isnan(fVec[idx-reboundIds:idx+reboundIds]).any(axis=0):
+                #print lcMxMagTemp[idx-reboundIds:idx+1]
+                onsetExtrema = lcMxMagTemp[idx-reboundIds:idx][abs(lcMxMagTemp[idx-reboundIds:idx]) > 0.]
+                #print lcMxMagTemp[idx]
+                onsetMax = np.max(abs(np.squeeze(onsetExtrema)))
+                #print onsetMax
+                #print ' '
+                if abs(lcMxMagTemp[idx]) < onsetMax:
+                    lcMxMagTemp[idx] = 0.
+                else:
+                    lcMxMagTemp[idx-reboundIds:idx] = 0.
+                    #print 'Onset stabilized'
+
+        elif lcMnMagTemp[idx]<0: # for every local minimum that exceeds the magnitude threshold
+            if abs(np.sum(lcMnMagTemp[idx-reboundIds:idx]))>magThresh and  ~np.isnan(fVec[idx-reboundIds:idx+reboundIds]).any(axis=0):
+                onsetExtrema = lcMnMagTemp[idx-reboundIds:idx][abs(lcMnMagTemp[idx-reboundIds:idx]) > 0.]
+                onsetMax = np.max(abs(np.squeeze(onsetExtrema)))
+                if abs(lcMnMagTemp[idx]) < onsetMax:
+                    lcMnMagTemp[idx] = 0.
+                else:
+                    lcMnMagTemp[idx-reboundIds:idx] = 0.
+
     ## Obtain saccades, retained extremes that are not 'rebounds' (stable pre-onset activity for edgeSec/4).
 
     for idx in range (reboundIds,len(headingVelo2)-reboundIds):
@@ -318,6 +242,7 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
                 sacPeakIdx = int(idx+lcMndeltaIdx[idx])
                 SacAngMn[sacPeakIdx] = flyAngleFilt[sacPeakIdx] # such that saccades can be indicated at peaks
                 SacIdxMn[idx] = sacPeakIdx # indices of saccades, to allow cropping of saccades
+
     ## only when fly is flying, set all other indices to nan
     SVMxThr, SVMnThr = sacOnly(headingVeloMxThr, fVec), sacOnly(headingVeloMnThr, fVec) # diagnostic
 
@@ -332,8 +257,20 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
     SAmx, SAmn = sacOnly(SacAngMx, fVec), sacOnly(SacAngMn, fVec)
     SVmx, SVmn = sacOnly(SheadingVeloMx, fVec), sacOnly(SheadingVeloMn, fVec)
     SIdxmx, SIdxmn = sacOnly(SacIdxMx, fVec), sacOnly(SacIdxMn, fVec)
-    #return SAmx, SAmn, SVmx, SVmn, SSctnMx, SSctnMn, SIdxmx, SIdxmn
-    return SMagMx, SMagMn, SAmx, SAmn, SVmx, SVmn, headingVelo2 #SAMx instantaneous angle where saccade happens
+
+    print('-------------------------')
+    print(len(SAmx[~np.isnan(SAmx)]))
+    print(len(SVmx[~np.isnan(SVmx)]))
+    print(len(SMagMx[~np.isnan(SMagMx)]))
+
+    print('---')
+    print(len(SAmn[~np.isnan(SAmn)]))
+    print(len(SVmn[~np.isnan(SVmn)]))
+    print(len(SMagMn[~np.isnan(SMagMn)]))
+
+    return SMagMx, SMagMn, SAmx, SAmn, SVmx, SVmn, headingVelo2, SVMxThr, SVMnThr, flyAngleFilt, SSctnMx, SSctnMn
+    
+    #SAMx instantaneous angle where saccade happens
 
 #def classSacs(SacIdxVec, LIds, fs):
     #    import numpy as np

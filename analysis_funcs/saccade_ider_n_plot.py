@@ -32,7 +32,7 @@ sns.set_style()
 #############################################################################
 
 #findSacs func
-def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
+def findSacs_n_plot(flyAngle,flyAngle2,headingVelo2,fly_n,sFigPath, plotQ,  *args):
 
 # Finds local min-/maxima that are within threshold/ceiling bounds of wing steering velocity (headingVelo)
 # Subsequently, integrates the unidirectional headingVelo sections surrounding local extremes,
@@ -58,8 +58,17 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
     # fVec, fs, headingVeloThresh, headingVeloCeil, magThresh, magCeil = \
     # np.zeros_like(flyAngle),30., 60., 2500., 6., 180.
 
+    #parameters used before 08/20/20
+    # fVec, fs, headingVeloThresh, headingVeloCeil, magThresh, magCeil = \
+    # np.zeros_like(flyAngle),30., 40., 2500., 6., 180.
+
+    #parameters used before 08/20/20
     fVec, fs, headingVeloThresh, headingVeloCeil, magThresh, magCeil = \
     np.zeros_like(flyAngle),30., 40., 2500., 6., 180.
+
+    #parameters used on 08/20/20
+    fVec, fs, headingVeloThresh, headingVeloCeil, magThresh, magCeil = \
+    np.zeros_like(flyAngle),30., 30., 2500., 6., 180.
 
     #64.,60.,2500.(ceil),6.,180. #the 10 could be 10
     #30., 20., 240., 10., 140. #testing values
@@ -333,7 +342,10 @@ def findSacs(flyAngle,flyAngle2, fly_n,sFigPath, plotQ,  *args):
     SVmx, SVmn = sacOnly(SheadingVeloMx, fVec), sacOnly(SheadingVeloMn, fVec)
     SIdxmx, SIdxmn = sacOnly(SacIdxMx, fVec), sacOnly(SacIdxMn, fVec)
     #return SAmx, SAmn, SVmx, SVmn, SSctnMx, SSctnMn, SIdxmx, SIdxmn
-    return SMagMx, SMagMn, SAmx, SAmn, SVmx, SVmn, headingVelo2 #SAMx instantaneous angle where saccade happens
+
+    return SMagMx, SMagMn, SAmx, SAmn, SVmx, SVmn, headingVelo2, SVMxThr, SVMnThr, flyAngleFilt, SSctnMx, SSctnMn
+    #return SMagMx, SMagMn, SAmx, SAmn, SVmx, SVmn, headingVelo2, SVMxThr, SVMnThr, flyAngleFilt, SSctnMx, SSctnMn
+    #SAMx instantaneous angle where saccade happens
 
 #def classSacs(SacIdxVec, LIds, fs):
     #    import numpy as np
